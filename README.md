@@ -7,4 +7,4 @@ This program is for educational pourposes only, the author will not be held resp
 
 ### How this works
 Everything is started by `FreeNitro.hta`, which is a fake free nitro page. The file has a vbs script that executes at launch and starts a new powershell process (so the rest of the program is able to run even if the first window is closed).
-The powershell process then loads the .NET assembly payload and executes it from memory. The payload searches the local storage of the user's browsers and Discord in order to find authorization tokens. Once the tokens have been found the program retrieves the frendlist and sends itself tho each friend along with a brief message.
+The powershell process then loads the .NET assembly payload and executes it from memory. The payload searches the local storage of the user's browsers and Discord in order to find authorization tokens. Once the tokens have been found the program retrieves the frendlist and sends itself to each friend along with a brief message.
